@@ -260,3 +260,5 @@ ax[2].tick_params(axis='y', labelsize=30)
 ax[2].tick_params(axis='x', labelsize=35)
 
 st.pyplot(fig)
+
+st.caption('Copyright © Seprianto 2023')
