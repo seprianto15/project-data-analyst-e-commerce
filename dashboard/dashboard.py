@@ -31,6 +31,21 @@ def create_sum_type_payments_df(df):
     sum_type_payments_df = df.groupby("payment_type").customer_id.nunique().sort_values(ascending=False).reset_index()
     return sum_type_payments_df
 
+def create_rfm_df(df):
+    rfm_df = df.groupby(by="customer_id", as_index=False).agg({
+        "order_approved_at": "max", # mengambil tanggal order terakhir yang disetujui
+        "order_id": "nunique",
+        "payment_value": "sum"
+    })
+    rfm_df.columns = ["customer_id", "max_order_timestamp", "frequency", "monetary"]
+
+    rfm_df["max_order_timestamp"] = rfm_df["max_order_timestamp"].dt.date
+    recent_date = df["order_approved_at"].dt.date.max()
+    rfm_df["recency"] = rfm_df["max_order_timestamp"].apply(lambda x: (recent_date-x).days)
+    rfm_df.drop("max_order_timestamp", axis=1, inplace=True)
+
+    return rfm_df
+
 # Load cleaned data
 all_df = pd.read_csv("https://raw.githubusercontent.com/seprianto15/project-data-analyst-e-commerce/master/dashboard/main_data.csv")
 all_df.sort_values(by="order_approved_at", inplace=True)
@@ -56,6 +71,10 @@ daily_orders_df = create_daily_orders_df(main_df)
 price_products_df = create_price_products_df(main_df)
 sum_order_items_df = create_sum_order_items_df(main_df)
 sum_type_payments_df = create_sum_type_payments_df(main_df)
+rfm_df = create_rfm_df(main_df)
+recency_df = rfm_df.groupby("recency").customer_id.nunique().reset_index()
+frequency_df = rfm_df.groupby("frequency").customer_id.nunique().reset_index()
+monetary_df = rfm_df.groupby("monetary").customer_id.nunique().reset_index()
 
 # Header
 st.header ('ミ★ 𝘉𝘈𝘊𝘒 𝘚𝘛𝘖𝘙𝘌 𝘋𝘈𝘚𝘏𝘉𝘖𝘈𝘙𝘋 ★彡')
@@ -179,5 +198,65 @@ ax.set_ylabel(None)
 ax.set_xlabel('customer_id', fontsize=40)
 ax.tick_params(axis ='y', labelsize=40)
 ax.tick_params(axis ='x', labelsize=35)
+
+st.pyplot(fig)
+
+# Best Customer Based on RFM Parameters
+st.subheader("Best Customer Based on RFM Parameters")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    avg_recency = round(recency_df.recency.mean(), 1)
+    st.metric("Average Recency (days)", value=avg_recency)
+
+with col2:
+    avg_frequency = round(frequency_df.frequency.mean(), 2)
+    st.metric("Average Frequency", value=avg_frequency)
+
+with col3:
+    avg_frequency = format_currency(monetary_df.monetary.mean(), "IDR", locale='es_CO') 
+    st.metric("Average Monetary", value=avg_frequency)
+
+fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(35, 15))
+colors = ["#90CAF9", "#90CAF9", "#90CAF9", "#90CAF9", "#90CAF9"]
+
+sns.barplot(
+    y="recency", 
+    x="customer_id", 
+    data=recency_df.sort_values(by="recency", ascending=True).head(5), 
+    palette=colors, 
+    ax=ax[0]
+)
+ax[0].set_ylabel(None)
+ax[0].set_xlabel("customer_id", fontsize=30)
+ax[0].set_title("By Recency (days)", loc="center", fontsize=50)
+ax[0].tick_params(axis='y', labelsize=30)
+ax[0].tick_params(axis='x', labelsize=35)
+
+sns.barplot(
+    y="frequency", 
+    x="customer_id", 
+    data=frequency_df.sort_values(by="frequency", ascending=False).head(5), 
+    palette=colors, 
+    ax=ax[1]
+)
+ax[1].set_ylabel(None)
+ax[1].set_xlabel("customer_id", fontsize=30)
+ax[1].set_title("By Frequency", loc="center", fontsize=50)
+ax[1].tick_params(axis='y', labelsize=30)
+ax[1].tick_params(axis='x', labelsize=35)
+
+sns.barplot(
+    y="monetary", 
+    x="customer_id", 
+    data=monetary_df.sort_values(by="monetary", ascending=False).head(5), 
+    palette=colors, ax=ax[2]
+)
+ax[2].set_ylabel(None)
+ax[2].set_xlabel("customer_id", fontsize=30)
+ax[2].set_title("By Monetary", loc="center", fontsize=50)
+ax[2].tick_params(axis='y', labelsize=30)
+ax[2].tick_params(axis='x', labelsize=35)
 
 st.pyplot(fig)
