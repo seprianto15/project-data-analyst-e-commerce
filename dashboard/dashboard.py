@@ -7,7 +7,7 @@ from babel.numbers import format_currency
 # Helper function yang dibutuhkan untuk menyiapkan berbagai dataframe
 
 def create_daily_orders_df(df):
-    daily_orders_df = df.resample(rule="Y", on="order_approved_at").agg({
+    daily_orders_df = df.resample(rule="D", on="order_approved_at").agg({
         "order_id": "nunique",
         "payment_value": "sum"
     })
@@ -73,6 +73,8 @@ ax.plot(
 )
 ax.tick_params(axis='y', labelsize=20)
 ax.tick_params(axis='x', labelsize=15)
+
+st.pyplot(fig)
 
 # Produk termahal dan terendah
 st.subheader('The Most Expensive and Cheapest Product')
