@@ -23,8 +23,16 @@ def create_price_products_df(df):
     price_products_df = df.groupby("product_category_name").price.max().sort_values(ascending=False).reset_index()
     return price_products_df
 
+def create_sum_order_items_df(df):
+    sum_order_items_df = df.groupby("product_category_name").order_item_id.sum().sort_values(ascending=False).reset_index()
+    return sum_order_items_df
+
+def create_sum_type_payments_df(df):
+    sum_type_payments_df = df.groupby("payment_type").customer_id.nunique().sort_values(ascending=False).reset_index()
+    return sum_type_payments_df
+
 # Load cleaned data
-all_df = pd.read_csv(r"C:\Users\dell\Desktop\submission\dashboard\main_data.csv")
+all_df = pd.read_csv("https://raw.githubusercontent.com/seprianto15/project-data-analyst-e-commerce/master/dashboard/main_data.csv")
 all_df.sort_values(by="order_approved_at", inplace=True)
 all_df.reset_index(inplace=True)
 all_df["order_approved_at"] = pd.to_datetime(all_df["order_approved_at"])
@@ -46,6 +54,8 @@ main_df = all_df[(all_df["order_approved_at"] >= str(start_date)) & (all_df["ord
 # Menyiapkan berbagai dataframe
 daily_orders_df = create_daily_orders_df(main_df)
 price_products_df = create_price_products_df(main_df)
+sum_order_items_df = create_sum_order_items_df(main_df)
+sum_type_payments_df = create_sum_type_payments_df(main_df)
 
 # Header
 st.header ('ミ★ 𝘉𝘈𝘊𝘒 𝘚𝘛𝘖𝘙𝘌 𝘋𝘈𝘚𝘏𝘉𝘖𝘈𝘙𝘋 ★彡')
@@ -76,7 +86,7 @@ ax.tick_params(axis='x', labelsize=15)
 
 st.pyplot(fig)
 
-# Produk termahal dan terendah
+# Price product
 st.subheader('The Most Expensive and Cheapest Product')
 
 fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(40, 18))
@@ -114,3 +124,60 @@ ax[1].tick_params(axis='x', labelsize=35)
 
 st.pyplot(fig)
 
+# Product performance
+st.subheader('Best and Worst Performing Product')
+
+fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(40, 18))
+
+colors = ["#1640D6", "#D3D3D3", "#D3D3D3", "#D3D3D3", "#D3D3D3"]
+
+sns.barplot(
+    x = "order_item_id",
+    y = "product_category_name",
+    data = sum_order_items_df.head(5),
+    palette = colors,
+    ax = ax[0]
+)
+ax[0].set_ylabel(None)
+ax[0].set_xlabel("Number of Sales", fontsize=40)
+ax[0].set_title("Best Performing Product", loc="center", fontsize=50)
+ax[0].tick_params(axis ='y', labelsize=40)
+ax[0].tick_params(axis='x', labelsize=35)
+
+sns.barplot(
+    x = "order_item_id",
+    y = "product_category_name",
+    data = sum_order_items_df.sort_values(by="order_item_id", ascending=True).head(5),
+    palette = colors,
+    ax = ax[1]
+)
+ax[1].set_ylabel(None)
+ax[1].set_xlabel("Number of Sales", fontsize=40)
+ax[1].invert_xaxis()
+ax[1].yaxis.set_label_position("right")
+ax[1].yaxis.tick_right()
+ax[1].set_title("Worst Performing Product", loc="center", fontsize=50)
+ax[1].tick_params(axis='y', labelsize=40)
+ax[1].tick_params(axis='x', labelsize=35)
+
+st.pyplot(fig)
+
+# Type payment
+st.subheader("The Payment Type Used by Customer")
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(40, 18))
+
+colors = ["#0069C0", "#D3D3D3", "#D3D3D3", "#D3D3D3"]
+
+sns.barplot(
+    x = "customer_id",
+    y = "payment_type",
+    data = sum_type_payments_df,
+    palette = colors
+)
+ax.set_ylabel(None)
+ax.set_xlabel('customer_id', fontsize=40)
+ax.tick_params(axis ='y', labelsize=40)
+ax.tick_params(axis ='x', labelsize=35)
+
+st.pyplot(fig)
